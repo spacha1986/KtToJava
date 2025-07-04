@@ -2,7 +2,7 @@ package com.medtronic.design.android.util
 
 object AutomationIDs {
     object Common {
-        const val LABEL = "label"
+        const val LABEL = "label1"
         const val ICON = "icon"
         const val TITLE = "title"
         const val PLACEHOLDER = "placeholder"
