@@ -2,6 +2,7 @@ name: Convert Kotlin to Java
 
 on:
   push:
+    path: design/src/main/java/com/medtronic/design/android/util/AutomationIDs.kt
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
