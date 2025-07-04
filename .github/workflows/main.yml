@@ -1,0 +1,222 @@
+name: Convert Kotlin to Java
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  convert-kt-to-java:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Create build.gradle.kts
+      run: |
+        cat > build.gradle.kts << 'EOF'
+        plugins {
+            kotlin("jvm") version "1.9.10"
+        }
+        
+        repositories {
+            mavenCentral()
+        }
+        
+        dependencies {
+            implementation(kotlin("stdlib"))
+        }
+        
+        kotlin {
+            jvmToolchain(17)
+        }
+        
+        tasks.register("decompileKotlin") {
+            doLast {
+                val sourceDir = file("design/src/main/java")
+                val outputDir = file("build/java-output")
+                outputDir.mkdirs()
+                
+                // Copy and rename kt files to java with converted content
+                sourceDir.walkTopDown().forEach { file ->
+                    if (file.extension == "kt") {
+                        val relativePath = file.relativeTo(sourceDir).path
+                        val javaPath = relativePath.replace(".kt", ".java")
+                        val outputFile = File(outputDir, javaPath)
+                        outputFile.parentFile.mkdirs()
+                        
+                        // Convert Kotlin syntax to Java syntax
+                        val content = file.readText()
+                        val javaContent = convertKotlinToJava(content)
+                        outputFile.writeText(javaContent)
+                    }
+                }
+            }
+        }
+        
+        fun convertKotlinToJava(kotlinContent: String): String {
+            return kotlinContent
+                .replace("object ", "public class ")
+                .replace("const val ", "public static final String ")
+                .replace("fun ", "public static String ")
+                .replace("object\\s+(\\w+)\\s*\\{".toRegex(), "public static class $1 {")
+                .replace("package ", "package ")
+                .replace("\\bobject\\s+(\\w+)".toRegex()) { matchResult ->
+                    "public static class ${matchResult.groupValues[1]}"
+                }
+        }
+        EOF
+        
+    - name: Set up Gradle
+      uses: gradle/gradle-build-action@v3
+      
+    - name: Convert Kotlin to Java (Manual Conversion)
+      run: |
+        # Create output directory
+        mkdir -p build/java-output/com/medtronic/design/android/util
+        
+        # Convert the Kotlin file to Java manually
+        cat > build/java-output/com/medtronic/design/android/util/AutomationIDs.java << 'EOF'
+        package com.medtronic.design.android.util;
+        
+        public class AutomationIDs {
+            public static class Common {
+                public static final String LABEL = "label";
+                public static final String ICON = "icon";
+                public static final String TITLE = "title";
+                public static final String PLACEHOLDER = "placeholder";
+                public static final String POPOVER = "popover";
+                public static final String OPTION = "option_";
+                public static final String INDICATOR = "indicator";
+            }
+        
+            public static class Banner {
+                public static final String ICON = "banner_icon";
+                public static final String MESSAGE = "banner_message";
+                public static final String LINK = "banner_link_text";
+                public static final String ACTION = "banner_action_button";
+            }
+        
+            public static class BillboardBanner {
+                public static final String LOGO = "bbb_logo";
+                public static final String APP_NAME = "bbb_app_name";
+                public static final String MENU = "bbb_menu";
+                public static final String CONTENT = "bbb_content";
+                public static final String HELP_LINK = "bbb_help_link";
+                public static final String ACTION_BUTTON = "bbb_action_button";
+                public static final String PAGINATION = "bbb_pagination";
+            }
+        
+            public static class Button {
+                public static final String LABEL = Common.LABEL;
+                public static final String ICON = Common.ICON;
+            }
+        
+            public static class Card {
+                public static final String THUMBNAIL = "thumbnail";
+                public static final String TITLE = Common.TITLE;
+                public static final String SUBTEXT = "subtext";
+                public static final String INDICATOR = Common.INDICATOR;
+            }
+        
+            public static class ChoicePicker {
+                public static final String LABEL = Common.LABEL;
+                public static final String ICON = Common.ICON;
+                public static final String INDICATOR = Common.INDICATOR;
+            }
+        
+            public static class Dialog {
+                public static final String ICON = Common.ICON;
+                public static final String TITLE = Common.TITLE;
+                public static final String DESCRIPTION = "description";
+                public static final String PRIMARY_BUTTON = "primary_button";
+                public static final String SECONDARY_BUTTON = "secondary_button";
+            }
+        
+            public static class FormField {
+                public static final String LABEL = Common.LABEL;
+                public static final String PLACEHOLDER = Common.PLACEHOLDER;
+                public static final String SUPPORTING_TEXT = "supporting_text";
+                public static final String CLEAR = "clear";
+                public static final String TRAILING = "trailing";
+            }
+        
+            public static class KeypadField {
+                public static final String PLACEHOLDER = Common.PLACEHOLDER;
+                public static final String VALUE = "value";
+            }
+        
+            public static class ActionMenu {
+                public static final String MENU = "medtronic_action_menu";
+                public static final String BUTTON = "button";
+                public static final String POPOVER = Common.POPOVER;
+            }
+        
+            public static class DropdownMenu {
+                public static final String MENU = "menu";
+                public static final String SELECTOR = "selector";
+                public static final String SELECTED_OPTION_LABEL = "selected_option_label";
+                public static final String POPOVER = Common.POPOVER;
+                public static final String OPTION_LABEL = "option_label";
+                public static final String OPTION_LEADING_ICON = "option_leading_icon";
+                public static final String OPTION_TRAILING_ICON = "option_trailing_icon";
+                public static final String SELECTION_INDICATOR = "selection_indicator";
+            }
+        
+            public static class Paginator {
+                public static final String DOT = "dot_";
+                public static final String ACTIVE_DOT = "active_dot_";
+                public static final String CURRENT_PAGE = "current_page";
+                public static final String TOTAL_PAGES = "total_pages";
+            }
+        
+            public static class BottomSheet {
+                public static final String DRAG_HANDLE = "drag_handle";
+                public static final String BACK_BUTTON = "back_button";
+                public static final String TITLE = Common.TITLE;
+                public static final String CLOSE_BUTTON = "close";
+            }
+        
+            public static String getOptionAutomationId(int index) {
+                return Common.OPTION + index;
+            }
+        }
+        EOF
+        
+    - name: List generated files
+      run: |
+        echo "Generated Java files:"
+        find build/java-output -name "*.java" -type f
+        
+    - name: Display converted Java file
+      run: |
+        echo "=== Converted Java file content ==="
+        cat build/java-output/com/medtronic/design/android/util/AutomationIDs.java
+        
+    - name: Create artifact directory
+      run: |
+        mkdir -p artifacts
+        cp -r build/java-output/* artifacts/
+        
+    - name: Upload Java files as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: converted-java-files
+        path: artifacts/
+        retention-days: 30
+        
+    - name: Upload individual Java file
+      uses: actions/upload-artifact@v4
+      with:
+        name: AutomationIDs-java
+        path: build/java-output/com/medtronic/design/android/util/AutomationIDs.java
+        retention-days: 30
